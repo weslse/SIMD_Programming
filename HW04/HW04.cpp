@@ -6,28 +6,67 @@ using namespace std;
 // 벡터 배열을 받아 단위벡터로 만들어주는 함수
 void Normalize(float* vectors, float* normalized, int size)
 {
-
+	// * vector 값을 나열할 때는 0 1 2 3 방향으로 나열하였음
 	for (int i = 0; i < size; i++)
 	{
+		// vector의 값 a b c d
 		__m128 vVector = _mm_loadu_ps(vectors + (4 * i));
+
+		// 제곱계산 a^2 b^2 c^2 d^2
 		__m128 vVectorSq = _mm_mul_ps(vVector, vVector);
-		
-		__m128 vHi = _mm_unpackhi_ps(vVectorSq, vVectorSq);
-		__m128 vLo = _mm_unpacklo_ps(vVectorSq, vVectorSq);
 
-		__m128 vHiHi = _mm_unpackhi_ps(vHi, vHi);
-		__m128 vHiLo = _mm_unpacklo_ps(vHi, vHi);
+		// 상위 비트만 남기기
+		// 연산이 3 2 1 0 방향으로 진행
+		//        d c b a
+		//        d c b a
+		//      1.  |		(아래방향으로 읽기)
+		//      2.|
+		// c^2 c^2 d^2 d^2
+		__m128 vVectorC2D2 = _mm_unpackhi_ps(vVectorSq, vVectorSq);
 
-		__m128 vLoHi = _mm_unpackhi_ps(vLo, vLo);
-		__m128 vLoLo = _mm_unpacklo_ps(vLo, vLo);
+		// 하위 비트만 남기기
+		// 연산이 3 2 1 0 행 순으로 진행
+		//        d c b a
+		//        d c b a
+		//      1.      |   (아래방향으로 읽기)
+		//      2.    |
+		// a^2 a^2 b^2 b^2
+		__m128 vVectorA2B2 = _mm_unpacklo_ps(vVectorSq, vVectorSq);
 
-		__m128 vLenSQ = _mm_add_ps(vHiHi, vHiLo);
-		vLenSQ = _mm_add_ps(vLenSQ, vLoHi);
+		// 각 원소 값만 추출
+		// D가 문제에서는 0이므로 구할 필요 없음
+		// d^2 d^2 d^2 d^2
+		//__m128 vVectorD2 = _mm_unpackhi_ps(vVectorC2D2, vVectorC2D2);
 
+		// c^2 c^2 c^2 c^2
+		__m128 vVectorC2 = _mm_unpacklo_ps(vVectorC2D2, vVectorC2D2);
 
-		// 벡터의 크기 = root(x*x+y*y+z*z)
-		__m128 vInvLen = _mm_rsqrt_ps(vVectorSq);
+		// b^2 b^2 b^2 b^2
+		__m128 vVectorB2 = _mm_unpackhi_ps(vVectorA2B2, vVectorA2B2);
+
+		// a^2 a^2 a^2 a^2
+		__m128 vVectorA2 = _mm_unpacklo_ps(vVectorA2B2, vVectorA2B2);
+
+		// 각 제곱값을 모두 더한다.
+		__m128 vLenSq = _mm_add_ps(vVectorA2, vVectorB2);
+		vLenSq = _mm_add_ps(vLenSq, vVectorC2);
+		//vLenSq = _mm_add_ps(vLenSq, vVectorD2);
+
+		// _mm_rsqrt_ps()는 값마다 APROXIMATE(1/sqrt()) 계산을 한다.
+		// Approximate 했기 때문에 약간의 오차가 발생
+		// but, 속도가 빠름(?)
+		__m128 vInvLen = _mm_rsqrt_ps(vLenSq);
+
+		// sqrt, div 등을 이용하여 속도가 느림
+		// 정밀한 계산은 아래와 같다. 
+		//__m128 vInvLen = _mm_sqrt_ps(vLenSq);
+		//__m128 vOne = _mm_set1_ps(1);
+		//vInvLen = _mm_div_ps(vOne, vInvLen);
+
+		// 곱셈
 		__m128 vNormalized = _mm_mul_ps(vVector, vInvLen);
+
+		// 저장
 		_mm_storeu_ps(normalized + (4 * i), vNormalized);
 	}
 }
@@ -44,6 +83,11 @@ int main()
 	for (int i = 0; i < 2; i++)
 	{
 		printf("%f %f %f\n", normalized[i][0], normalized[i][1], normalized[i][2]);
+
+		//printf("%f %f %f\n", 
+		//	vectors[i][0] / sqrtf(vectors[i][0] * vectors[i][0] + vectors[i][1] * vectors[i][1] + vectors[i][2] * vectors[i][2]), 
+		//	vectors[i][1] / sqrtf(vectors[i][0] * vectors[i][0] + vectors[i][1] * vectors[i][1] + vectors[i][2] * vectors[i][2]),
+		//	vectors[i][2] / sqrtf(vectors[i][0] * vectors[i][0] + vectors[i][1] * vectors[i][1] + vectors[i][2] * vectors[i][2]));
 	}
 
 	return 0;
