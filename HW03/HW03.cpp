@@ -43,21 +43,27 @@ int CountNumber(float *colors, float value, int size)
 		// 어느 위치가 value값과 같은지 구함
 		int maskNum = _mm_movemask_ps(vCmp);
 		
-		// 나오는 숫자 0 1 0 0 이므로
-		// num을 계산하는 루프
-		for (int i = 4; i > 0; --i)
-		{
-			// 해당 위치를 계산 
-			// 순서가 3 2 1 0 이므로
-			// i - 1만큼 shift 해준다.
-			int divNum = (1 << (i - 1));
-			
-			// 해당 위치가 1이면 cnt 증가
-			cnt += (maskNum / divNum);
+		//// 나오는 숫자 0 1 0 0 이므로
+		//// num을 계산하는 루프
+		//for (int i = 4; i > 0; --i)
+		//{
+		//	// 해당 위치를 계산 
+		//	// 순서가 3 2 1 0 이므로
+		//	// i - 1만큼 shift 해준다.
+		//	int divNum = (1 << (i - 1));
+		//	
+		//	// 해당 위치가 1이면 cnt 증가
+		//	cnt += (maskNum / divNum);
 
-			// 다음 자리 검사 위해 나누기
-			maskNum %= divNum;
-		}
+		//	// 다음 자리 검사 위해 나누기
+		//	maskNum %= divNum;
+		//}
+		for (; maskNum != 0; maskNum &= (maskNum - 1))
+			cnt++;
+		
+		// 비트열의 1의 개수를 미리 세서
+		// 배열로 미리 저장
+		// cntArr[maskNum] 같은 방식으로 빠르게 읽기
 	}
 
 	return cnt;
