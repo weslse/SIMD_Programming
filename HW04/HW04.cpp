@@ -1,4 +1,5 @@
 #include <emmintrin.h>
+#include <pmmintrin.h>
 #include <iostream>
 
 using namespace std;
@@ -50,12 +51,17 @@ void Normalize(float* vectors, float* normalized, int size)
 		// 각 제곱값을 모두 더한다.
 		__m128 vLenSq = _mm_add_ps(vVectorA2, vVectorB2);
 		vLenSq = _mm_add_ps(vLenSq, vVectorC2);
+		
+		// hadd
+		__m128 vLenSq2 = _mm_hadd_ps(vVectorSq, vVectorSq);
+		vLenSq2 = _mm_hadd_ps(vLenSq2, vLenSq2);
 		//vLenSq = _mm_add_ps(vLenSq, vVectorD2);
 
 		// _mm_rsqrt_ps()는 값마다 APROXIMATE(1/sqrt()) 계산을 한다.
 		// Approximate 했기 때문에 약간의 오차가 발생
 		// but, 속도가 빠름(?)
-		__m128 vInvLen = _mm_rsqrt_ps(vLenSq);
+		//__m128 vInvLen = _mm_rsqrt_ps(vLenSq);
+		__m128 vInvLen = _mm_rsqrt_ps(vLenSq2);
 
 		// sqrt, div 등을 이용하여 속도가 느림
 		// 정밀한 계산은 아래와 같다. 
